@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Environment variables (tokens, secrets)
+.env
+
+# Cloned repos — only track the extracted hssi_metadata.md files
+repos/**
+!repos/*/
+!repos/*/hssi_metadata.md
+
+# Payloads — only track reference examples
+payloads/*
+!payloads/.gitkeep
+!payloads/example_submission.json
