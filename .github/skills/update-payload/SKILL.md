@@ -283,3 +283,12 @@ Same endpoints as the submission payload — use these to normalize values befor
 | Data Sources | `/api/models/DataInput/rows/all/` |
 | Related Phenomena | `/api/models/Phenomena/rows/all/` |
 | License | `/api/models/License/rows/all/` |
+| Related Instruments / Observatories | `/api/models/InstrumentObservatory/rows/all/` (`type` 1 = instrument, 2 = observatory) |
+
+**Instruments / Observatories matching:** Resolve names against
+`/api/models/InstrumentObservatory/rows/all/` and send the entry's canonical (abbreviation-stripped)
+`name` plus its SPASE `identifier` (`https://spase-metadata.org/...`). Matching is by `identifier`
+first, then a **case-sensitive exact** `name`+`type` match — so the identifier is the reliable key;
+a drifting or abbreviation-embedded name (`Parker Solar Probe (PSP)`) silently creates a duplicate.
+Prefer the `SMWG/...` namespace when names collide across authorities. Never send `landing_url`
+(server-derived HelioData page).

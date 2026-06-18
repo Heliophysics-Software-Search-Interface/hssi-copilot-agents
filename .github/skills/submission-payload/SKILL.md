@@ -114,8 +114,14 @@ Each submission object **must** include these five fields:
 - `identifier` — URL (typically ROR for institutions)
 
 ### Instrument / Observatory
-- `name` (required) — string
-- `identifier` — URL
+- `name` (required) — string — the canonical controlled-list name: the SPASE name with any
+  parenthetical abbreviation stripped (e.g. `Parker Solar Probe`, not `Parker Solar Probe (PSP)`).
+- `identifier` — URL — the SPASE Resource ID (`https://spase-metadata.org/...`) from the controlled
+  list. **Strongly preferred:** it is the reliable de-duplication key (see Backend Quirks). Resolve
+  names against `/api/models/InstrumentObservatory/rows/all/` (`type` 1 = instrument, 2 = observatory).
+  When multiple entries share a name across naming authorities, prefer the `SMWG/...` namespace.
+- Do **not** send a `landing_url` — that field is server-derived (the HelioData page) and is ignored
+  on submission. Agents only ever set `name` and `identifier`.
 
 ### Award
 - `name` (required) — string
@@ -254,7 +260,7 @@ Normalize values to **exact** strings from the `name` field in these endpoints o
    - Person: by `identifier` (ORCID) first, then by `givenName`+`familyName`
    - Submitter: by `email` (case-insensitive)
    - Organization: by `identifier` first, then by `name` (case-insensitive)
-   - InstrumentObservatory: by `identifier` first, then by `name`+`type`
+   - InstrumentObservatory: by `identifier` first, then by `name`+`type`. **The name fallback is a case-sensitive exact match** (`filter(name=..., type=...)`, unlike the case-insensitive matching used for most other models), so any drift in spelling, casing, or an embedded abbreviation (`Parker Solar Probe (PSP)` vs the canonical `Parker Solar Probe`) silently creates a **duplicate** row. Always send the SPASE `identifier` to bind to the canonical entry reliably.
    - Award: by `identifier` first, then by `name` (case-insensitive)
    - RelatedItem (publications/datasets/software): by `identifier` (URL)
    - Keyword: case-insensitive name match, created if missing

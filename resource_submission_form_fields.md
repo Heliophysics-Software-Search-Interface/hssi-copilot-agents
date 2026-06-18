@@ -545,11 +545,13 @@ The form collects metadata about heliophysics software packages for inclusion in
 
 **What it is:** The instrument the software is designed to support.
 
-**How to fill it:** Begin typing the instrument name. Instruments from IVOA will appear in dropdown; choose correct one. If not listed, type full name.
+**How to fill it:** Begin typing the instrument name. Matches from HSSI's controlled instrument/observatory vocabulary appear in the dropdown; choose the correct one. This vocabulary is sourced from the heliophysics.net API and resolved to SPASE identifiers (it replaced the older IVOA-based list, which is now retired). If no entry matches, type the full name.
+
+**Agent guidance:** Resolve the instrument against the controlled list at `/api/models/InstrumentObservatory/rows/all/` (`type` 1 = instrument). Use the entry's canonical `name` — the SPASE name with any parenthetical abbreviation stripped (e.g. `Magnetic Field Investigation`, not `Magnetic Field Investigation (MFI)`) — and supply its `identifier` (a `https://spase-metadata.org/...` URL). The identifier is the reliable de-duplication key (see the submission/update payload skills); a free-typed or abbreviation-embedded name silently creates a duplicate entry.
 
 **Sub-fields:**
-- **Instrument Name** (OPTIONAL): Name of the instrument
-- **Instrument Identifier** (OPTIONAL): Globally unique persistent identifier (e.g., DOI like https://doi.org/10.5281/zenodo.13287868). Enables improved linking.
+- **Instrument Name** (OPTIONAL): Name of the instrument (canonical, abbreviation-stripped)
+- **Instrument Identifier** (OPTIONAL): Globally unique persistent identifier — the SPASE Resource ID URL from the controlled list (e.g. `https://spase-metadata.org/SMWG/Instrument/...`) or a DOI. Enables improved linking and reliable matching.
 
 ---
 
@@ -558,10 +560,13 @@ The form collects metadata about heliophysics software packages for inclusion in
 
 **What it is:** The mission, observatory, and/or group of instruments the software is designed to support.
 
-**How to fill it:** Begin typing the name. Missions and Observatories from IVOA will appear in dropdown; choose correct one. If not listed, type full name.
+**How to fill it:** Begin typing the name. Matches from HSSI's controlled instrument/observatory vocabulary appear in the dropdown; choose the correct one. This vocabulary is sourced from the heliophysics.net API and resolved to SPASE identifiers (it replaced the older IVOA-based list, which is now retired). If no entry matches, type the full name.
+
+**Agent guidance:** Resolve the observatory/mission against the controlled list at `/api/models/InstrumentObservatory/rows/all/` (`type` 2 = observatory). Use the entry's canonical `name` — the SPASE name with any parenthetical abbreviation stripped (e.g. `Parker Solar Probe`, not `Parker Solar Probe (PSP)`) — and supply its `identifier` (a `https://spase-metadata.org/...` URL). When several entries share a name across naming authorities, prefer the `SMWG/Observatory/...` namespace for missions/observatories. The identifier is the reliable de-duplication key.
 
 **Sub-fields:**
-- **Observatory Name** (OPTIONAL): Name of the observatory/mission
+- **Observatory Name** (OPTIONAL): Name of the observatory/mission (canonical, abbreviation-stripped)
+- **Observatory Identifier** (OPTIONAL): Globally unique persistent identifier — the SPASE Resource ID URL from the controlled list (e.g. `https://spase-metadata.org/SMWG/Observatory/...`). Enables improved linking and reliable matching.
 
 ---
 

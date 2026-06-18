@@ -164,6 +164,11 @@ Actively look for metadata the extractor might have missed:
 
 5. **Check for related instruments/observatories** not mentioned:
    - Search README and docs for instrument or mission names
+   - For any instrument/mission found, check it resolves to HSSI's controlled vocabulary at
+     `/api/models/InstrumentObservatory/rows/all/`; recommend the canonical (abbreviation-stripped)
+     `name` and its SPASE `identifier` (`https://spase-metadata.org/...`) rather than a free-typed
+     string. Flag embedded-abbreviation names (e.g. `Parker Solar Probe (PSP)`) and missing identifiers,
+     since the backend's name match is case-sensitive and exact (a mismatch creates a duplicate entry).
 
 6. **Verify "Not found" fields** — for each field marked "Not found", spend a moment confirming it truly cannot be determined from available sources
 
