@@ -157,7 +157,8 @@ Examine these repository locations systematically:
 1. Read the `data[]` array and **keep only SPASE-backed rows** — `identifier.startswith("https://spase-metadata.org/")`. The endpoint still holds ~63 legacy rows with blank or `helio.data.nasa.gov/...` identifiers; never resolve to those.
 2. Match by `type` (1 = instrument → Field 31, 2 = observatory → Field 32) and the canonical name with any parenthetical abbreviation stripped (e.g. `Parker Solar Probe`, not `Parker Solar Probe (PSP)`). When several SPASE rows remain, prefer the `SMWG/...` namespace; note the canonical SMWG name is sometimes the long form (e.g. SMWG/Observatory/THEMIS is "Time History of Events and Macroscale Interactions during Substorms").
 3. Record both the canonical `name` and the SPASE `identifier` (`https://spase-metadata.org/...`) — the identifier is the reliable de-duplication key on submission.
-4. If you can't find a confident SPASE match, record the plain name without an identifier and note it for the validator/user rather than guessing.
+4. **If more than one SPASE candidate remains** after namespace/platform evidence (e.g. `Solar Ultraviolet Imager` matches four GOES-16/17/18/19 rows), do **not** pick one arbitrarily — record the plain `name` with **no identifier** and flag it for the validator/user.
+5. If you can't find any confident SPASE match, likewise record the plain name without an identifier and note it rather than guessing.
 
 See the "Notes for AI Agents" section in the `hssi-field-definitions` skill for detailed guidance on where to find each type of metadata.
 

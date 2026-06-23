@@ -134,8 +134,13 @@ Each submission object **must** include these five fields:
    `CNES/...`. Note the canonical SMWG `name` is sometimes the long form (e.g. SMWG/Observatory/THEMIS
    is named "Time History of Events and Macroscale Interactions during Substorms", not "THEMIS"), so
    match on the spelled-out name, not the acronym.
-5. Emit that row's `name` + SPASE `identifier`. If nothing matches, free-type the `name` (no
-   `identifier`) and flag it for the user rather than guessing.
+5. **Stop on unresolved collisions.** If more than one SPASE candidate still remains after applying
+   namespace and platform/mission evidence (e.g. `Solar Ultraviolet Imager` resolves to four
+   instrument rows, one each for GOES-16/17/18/19), **do not pick one arbitrarily** — emit the `name`
+   with **no `identifier`** and flag it for user/manual review. An unidentified name is recoverable;
+   a wrong identifier silently mis-links the software.
+6. Emit the chosen row's `name` + SPASE `identifier`. If nothing matches at all, free-type the `name`
+   (no `identifier`) and flag it for the user rather than guessing.
 
 ### Award
 - `name` (required) — string

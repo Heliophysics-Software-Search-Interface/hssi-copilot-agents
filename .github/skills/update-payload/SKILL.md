@@ -292,8 +292,10 @@ holds ~63 legacy rows with blank or `helio.data.nasa.gov/...` identifiers that m
 (they are being removed by the backfill). Then match by `type` (1 = instrument, 2 = observatory) and
 canonical (abbreviation-stripped) name, preferring the `SMWG/...` namespace when several remain (the
 canonical SMWG name is sometimes the long form, e.g. SMWG/Observatory/THEMIS is
-"Time History of Events and Macroscale Interactions during Substorms"). Send the entry's `name` plus
-its SPASE `identifier`. Backend matching is by `identifier` first, then a **case-sensitive exact**
-`name`+`type` match — so the identifier is the reliable key; a drifting or abbreviation-embedded name
-(`Parker Solar Probe (PSP)`) silently creates a duplicate. Never send `landing_url` (server-derived
-HelioData page).
+"Time History of Events and Macroscale Interactions during Substorms"). **If more than one SPASE
+candidate still remains after namespace/platform evidence** (e.g. `Solar Ultraviolet Imager` matches
+four GOES-16/17/18/19 instrument rows), **do not pick arbitrarily — omit the `identifier` and flag for
+user/manual review.** Otherwise send the entry's `name` plus its SPASE `identifier`. Backend matching
+is by `identifier` first, then a **case-sensitive exact** `name`+`type` match — so the identifier is
+the reliable key; a drifting or abbreviation-embedded name (`Parker Solar Probe (PSP)`) silently
+creates a duplicate. Never send `landing_url` (server-derived HelioData page).

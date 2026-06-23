@@ -170,10 +170,12 @@ Actively look for metadata the extractor might have missed:
      still contains ~63 legacy rows with blank or `helio.data.nasa.gov/...` identifiers that must be
      ignored. Match by `type` (1 = instrument, 2 = observatory) and the canonical
      (abbreviation-stripped) name, preferring the `SMWG/...` namespace. Recommend that row's canonical
-     `name` and SPASE `identifier` rather than a free-typed string. Flag embedded-abbreviation names
-     (e.g. `Parker Solar Probe (PSP)`), missing identifiers, and any value resolving to a legacy
-     non-SPASE row, since the backend's name match is case-sensitive and exact (a mismatch creates a
-     duplicate entry).
+     `name` and SPASE `identifier` rather than a free-typed string. **If several SPASE candidates
+     remain after namespace/platform evidence** (e.g. `Solar Ultraviolet Imager` → GOES-16/17/18/19),
+     recommend the bare `name` with no identifier rather than an arbitrary pick. Flag embedded-abbreviation
+     names (e.g. `Parker Solar Probe (PSP)`), missing identifiers, ambiguous multi-candidate matches,
+     and any value resolving to a legacy non-SPASE row, since the backend's name match is
+     case-sensitive and exact (a mismatch creates a duplicate entry).
 
 6. **Verify "Not found" fields** — for each field marked "Not found", spend a moment confirming it truly cannot be determined from available sources
 
