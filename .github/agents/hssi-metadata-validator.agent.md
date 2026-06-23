@@ -165,10 +165,15 @@ Actively look for metadata the extractor might have missed:
 5. **Check for related instruments/observatories** not mentioned:
    - Search README and docs for instrument or mission names
    - For any instrument/mission found, check it resolves to HSSI's controlled vocabulary at
-     `/api/models/InstrumentObservatory/rows/all/`; recommend the canonical (abbreviation-stripped)
-     `name` and its SPASE `identifier` (`https://spase-metadata.org/...`) rather than a free-typed
-     string. Flag embedded-abbreviation names (e.g. `Parker Solar Probe (PSP)`) and missing identifiers,
-     since the backend's name match is case-sensitive and exact (a mismatch creates a duplicate entry).
+     `/api/models/InstrumentObservatory/rows/all/`. Read the `data[]` array and **consider only
+     SPASE-backed rows** (`identifier.startswith("https://spase-metadata.org/")`) — the endpoint
+     still contains ~63 legacy rows with blank or `helio.data.nasa.gov/...` identifiers that must be
+     ignored. Match by `type` (1 = instrument, 2 = observatory) and the canonical
+     (abbreviation-stripped) name, preferring the `SMWG/...` namespace. Recommend that row's canonical
+     `name` and SPASE `identifier` rather than a free-typed string. Flag embedded-abbreviation names
+     (e.g. `Parker Solar Probe (PSP)`), missing identifiers, and any value resolving to a legacy
+     non-SPASE row, since the backend's name match is case-sensitive and exact (a mismatch creates a
+     duplicate entry).
 
 6. **Verify "Not found" fields** — for each field marked "Not found", spend a moment confirming it truly cannot be determined from available sources
 

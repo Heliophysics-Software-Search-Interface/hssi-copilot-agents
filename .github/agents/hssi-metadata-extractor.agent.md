@@ -152,6 +152,13 @@ Examine these repository locations systematically:
 
 **Organization names (Author Affiliation, Funder) — expand acronyms.** When you encounter an acronym for an affiliation (Field 6) or funder (Field 25), record the full institutional name instead. Example: `NASA` → `National Aeronautics and Space Administration`. If the source only contains an ambiguous acronym you can't confidently expand, leave it as-is and note it so the validator/user can resolve it.
 
+**Related Instruments / Observatories (Fields 31 & 32) — resolve against the SPASE vocab.** When the repo references an instrument, mission, or observatory, don't just free-type the name. Resolve it against HSSI's controlled vocabulary at `/api/models/InstrumentObservatory/rows/all/` (on the target base URL):
+
+1. Read the `data[]` array and **keep only SPASE-backed rows** — `identifier.startswith("https://spase-metadata.org/")`. The endpoint still holds ~63 legacy rows with blank or `helio.data.nasa.gov/...` identifiers; never resolve to those.
+2. Match by `type` (1 = instrument → Field 31, 2 = observatory → Field 32) and the canonical name with any parenthetical abbreviation stripped (e.g. `Parker Solar Probe`, not `Parker Solar Probe (PSP)`). When several SPASE rows remain, prefer the `SMWG/...` namespace; note the canonical SMWG name is sometimes the long form (e.g. SMWG/Observatory/THEMIS is "Time History of Events and Macroscale Interactions during Substorms").
+3. Record both the canonical `name` and the SPASE `identifier` (`https://spase-metadata.org/...`) — the identifier is the reliable de-duplication key on submission.
+4. If you can't find a confident SPASE match, record the plain name without an identifier and note it for the validator/user rather than guessing.
+
 See the "Notes for AI Agents" section in the `hssi-field-definitions` skill for detailed guidance on where to find each type of metadata.
 
 ---

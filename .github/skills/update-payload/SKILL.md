@@ -286,9 +286,14 @@ Same endpoints as the submission payload — use these to normalize values befor
 | Related Instruments / Observatories | `/api/models/InstrumentObservatory/rows/all/` (`type` 1 = instrument, 2 = observatory) |
 
 **Instruments / Observatories matching:** Resolve names against
-`/api/models/InstrumentObservatory/rows/all/` and send the entry's canonical (abbreviation-stripped)
-`name` plus its SPASE `identifier` (`https://spase-metadata.org/...`). Matching is by `identifier`
-first, then a **case-sensitive exact** `name`+`type` match — so the identifier is the reliable key;
-a drifting or abbreviation-embedded name (`Parker Solar Probe (PSP)`) silently creates a duplicate.
-Prefer the `SMWG/...` namespace when names collide across authorities. Never send `landing_url`
-(server-derived HelioData page).
+`/api/models/InstrumentObservatory/rows/all/` (read the response's `data[]` array). **Keep only
+SPASE-backed rows** — `identifier.startswith("https://spase-metadata.org/")`; the endpoint still
+holds ~63 legacy rows with blank or `helio.data.nasa.gov/...` identifiers that must never be matched
+(they are being removed by the backfill). Then match by `type` (1 = instrument, 2 = observatory) and
+canonical (abbreviation-stripped) name, preferring the `SMWG/...` namespace when several remain (the
+canonical SMWG name is sometimes the long form, e.g. SMWG/Observatory/THEMIS is
+"Time History of Events and Macroscale Interactions during Substorms"). Send the entry's `name` plus
+its SPASE `identifier`. Backend matching is by `identifier` first, then a **case-sensitive exact**
+`name`+`type` match — so the identifier is the reliable key; a drifting or abbreviation-embedded name
+(`Parker Solar Probe (PSP)`) silently creates a duplicate. Never send `landing_url` (server-derived
+HelioData page).

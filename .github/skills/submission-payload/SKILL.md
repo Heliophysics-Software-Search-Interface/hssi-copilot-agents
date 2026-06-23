@@ -117,11 +117,25 @@ Each submission object **must** include these five fields:
 - `name` (required) — string — the canonical controlled-list name: the SPASE name with any
   parenthetical abbreviation stripped (e.g. `Parker Solar Probe`, not `Parker Solar Probe (PSP)`).
 - `identifier` — URL — the SPASE Resource ID (`https://spase-metadata.org/...`) from the controlled
-  list. **Strongly preferred:** it is the reliable de-duplication key (see Backend Quirks). Resolve
-  names against `/api/models/InstrumentObservatory/rows/all/` (`type` 1 = instrument, 2 = observatory).
-  When multiple entries share a name across naming authorities, prefer the `SMWG/...` namespace.
+  list. **Strongly preferred:** it is the reliable de-duplication key (see Backend Quirks).
 - Do **not** send a `landing_url` — that field is server-derived (the HelioData page) and is ignored
   on submission. Agents only ever set `name` and `identifier`.
+
+**How to resolve against the controlled list** (`/api/models/InstrumentObservatory/rows/all/`):
+
+1. Read the rows from the response's `data[]` array.
+2. **Filter to SPASE-backed rows only** — keep rows where
+   `identifier.startswith("https://spase-metadata.org/")`. The endpoint still contains ~63 **legacy**
+   rows with blank identifiers or a `helio.data.nasa.gov/...` URL (pending cleanup); these are not
+   canonical — never resolve to them, or you reintroduce the duplicates the backfill is removing.
+3. Match by `type` (1 = instrument, 2 = observatory) **and** the canonical (abbreviation-stripped) name.
+4. When several SPASE rows remain, **prefer the `SMWG/Observatory/...` or `SMWG/Instrument/...`
+   namespace** (the authoritative mission/observatory registry) over project archives like
+   `CNES/...`. Note the canonical SMWG `name` is sometimes the long form (e.g. SMWG/Observatory/THEMIS
+   is named "Time History of Events and Macroscale Interactions during Substorms", not "THEMIS"), so
+   match on the spelled-out name, not the acronym.
+5. Emit that row's `name` + SPASE `identifier`. If nothing matches, free-type the `name` (no
+   `identifier`) and flag it for the user rather than guessing.
 
 ### Award
 - `name` (required) — string
@@ -225,6 +239,7 @@ Normalize values to **exact** strings from the `name` field in these endpoints o
 | Data Sources | `/api/models/DataInput/rows/all/` |
 | Related Phenomena | `/api/models/Phenomena/rows/all/` |
 | License | `/api/models/License/rows/all/` |
+| Related Instruments / Observatories | `/api/models/InstrumentObservatory/rows/all/` (`type` 1 = instrument, 2 = observatory; **filter to SPASE-backed `identifier`s** — see Instrument / Observatory above) |
 
 **How to use:** Fetch each relevant endpoint, extract the `name` field from each row, and normalize your metadata values to match exactly. If an extracted value doesn't match any controlled-list entry, flag it for user review rather than silently dropping it.
 
