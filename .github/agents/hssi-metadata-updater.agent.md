@@ -211,6 +211,7 @@ For user-approved changes only:
 1. **Normalize controlled-list values** against live endpoints on the target URL
 2. **Build the body** as a flat JSON object of camelCase field names → values, using the same shapes as `/api/submission/`. There is no `softwareId`/`fields` envelope — the `softwareId` goes in the URL path, and the body is just the changed fields.
 3. **Include only changed fields** in the body.
+4. **Instrument/Observatory collision gate.** If resolving a `relatedInstruments`/`relatedObservatories` value hits an **unresolved match** — either a name matching several controlled-list rows (e.g. the four `Solar Ultraviolet Imager` GOES-16/17/18/19 rows) **or** a name with no SPASE match that still exactly equals a legacy non-SPASE row (the no-identifier path `filter(name, type).first()` would bind it to that legacy row the backfill is removing) — **omit that entry** from the payload (never send a bare name — see `update-payload`) and flag it in the diff report as requiring manual resolution. A bare name is safe only when the full, unfiltered vocab has **zero** exact `name`+`type` matches. If an upstream extractor pass already marked an entry `NEEDS MANUAL RESOLUTION` (enrich mode reuses extraction), treat that marker as the same hard blocker — do not re-resolve it into a submittable value. This is a **hard blocker for EXECUTE:** PREPARE may report it, but do not PATCH while any unresolved instrument/observatory entry remains.
 
 See the `update-payload` skill for the complete field shape reference.
 
@@ -223,6 +224,8 @@ If invoked directly (not via orchestrator), show the complete JSON payload and a
 ### Step 8: Submit — One Shot, No Retries
 
 > **Production guard:** If the target is production and you have not yet surfaced the version-control-trail recommendation (see *CRITICAL: Production Updates Leave No Version-Control Trail*), do that first and get the user's explicit choice before submitting.
+>
+> **Collision guard:** Do not PATCH if Step 6.4 flagged an unresolved instrument/observatory collision — that is a hard blocker; return to the user for resolution first.
 
 ```bash
 curl -X PATCH <target_url>/api/data/software/<uid>/ \

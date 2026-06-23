@@ -165,17 +165,31 @@ Actively look for metadata the extractor might have missed:
 5. **Check for related instruments/observatories** not mentioned:
    - Search README and docs for instrument or mission names
    - For any instrument/mission found, check it resolves to HSSI's controlled vocabulary at
-     `/api/models/InstrumentObservatory/rows/all/`. Read the `data[]` array and **consider only
-     SPASE-backed rows** (`identifier.startswith("https://spase-metadata.org/")`) — the endpoint
-     still contains ~63 legacy rows with blank or `helio.data.nasa.gov/...` identifiers that must be
-     ignored. Match by `type` (1 = instrument, 2 = observatory) and the canonical
-     (abbreviation-stripped) name, preferring the `SMWG/...` namespace. Recommend that row's canonical
-     `name` and SPASE `identifier` rather than a free-typed string. **If several SPASE candidates
-     remain after namespace/platform evidence** (e.g. `Solar Ultraviolet Imager` → GOES-16/17/18/19),
-     recommend the bare `name` with no identifier rather than an arbitrary pick. Flag embedded-abbreviation
-     names (e.g. `Parker Solar Probe (PSP)`), missing identifiers, ambiguous multi-candidate matches,
-     and any value resolving to a legacy non-SPASE row, since the backend's name match is
-     case-sensitive and exact (a mismatch creates a duplicate entry).
+     `/api/models/InstrumentObservatory/rows/all/`. The endpoint returns the whole vocabulary
+     (~7,700 rows) in `data[]` — fetch it once to a file and filter with `grep`/`jq`/`python` rather
+     than loading every row into context (`?columns=id,name,identifier,type,abbreviation` drops the large
+     `definition`; keep `id`, or the API returns an empty `data[]`). **Consider only SPASE-backed rows** (`identifier.startswith("https://spase-metadata.org/")`)
+     — the list also holds ~60 legacy rows (blank or `helio.data.nasa.gov/...` identifiers) that must
+     be ignored (rely on the prefix filter, not the count). **Normalize `.html`** — ~40+ identifiers
+     exist in both bare and `.html` forms (e.g. `.../SDO/AIA` and `.../SDO/AIA.html`); treat them as one
+     and prefer the non-`.html` row. Match on multiple signals restricted to the right `type`
+     (1 = instrument, 2 = observatory): the row `name`, its `abbreviation`, source parenthetical
+     aliases, and the SPASE **identifier path segments** (platform/mission evidence, e.g.
+     `.../GOES/17/SUVI`). Prefer `SMWG/...` only as a tie-breaker among same-name duplicates (a single
+     non-SMWG match like `ESA/Observatory/SolarOrbiter` is still correct). Recommend that row's
+     canonical `name` (verbatim) and SPASE `identifier` rather than a free-typed string. **If several
+     SPASE candidates remain after namespace/platform evidence** (e.g. `Solar Ultraviolet Imager` →
+     GOES-16/17/18/19), flag it as an **unresolved collision that must be manually resolved before
+     submission** — do not recommend a bare `name`, because the backend's no-identifier path is a
+     case-sensitive `filter(name=…, type=…).first()` that silently binds a bare name to an arbitrary
+     same-name row. **Before endorsing any no-identifier (free-typed) value, check the full, unfiltered
+     endpoint for a row with that exact `name`+`type`:** if one exists — a same-name collision or a
+     **legacy non-SPASE row** (56 of the 63 legacy rows have no SPASE twin, e.g. `ELFIN`, `COSMIC-2`) —
+     the bare name would bind to it (re-linking to the legacy row the backfill removes), so flag it as
+     **needs manual resolution**, not as an acceptable value. A free-typed value is only acceptable when
+     **no row of any kind** has that exact `name`+`type`. Treat any extractor entry already marked
+     `NEEDS MANUAL RESOLUTION` as unresolved (don't silently "fix" it into a submittable value). Also
+     flag embedded-abbreviation names (e.g. `Parker Solar Probe (PSP)`) and missing identifiers.
 
 6. **Verify "Not found" fields** — for each field marked "Not found", spend a moment confirming it truly cannot be determined from available sources
 
