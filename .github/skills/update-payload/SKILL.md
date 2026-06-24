@@ -315,10 +315,13 @@ Then:
 - Otherwise send the single chosen row's `name` plus its SPASE `identifier`. If **no SPASE row matches**,
   do **not** immediately free-type a bare name: the no-identifier fallback `filter(name=…, type=…).first()`
   runs over the **whole table**, including the ~63 legacy non-SPASE rows. Check the **full, unfiltered**
-  endpoint for any row with that exact `name`+`type` — if one exists (a legacy row, or several same-name
-  rows), a bare name binds to it and re-links the software to a legacy row the backfill is removing
-  (56 of 63 legacy rows have no SPASE twin), so **omit the entry and flag it** instead. Only free-type
-  the `name` (no `identifier`) when **no row of any kind** has that exact `name`+`type` (a genuinely new
-  entry). Backend matching is `identifier` first, then the case-sensitive `name`+`type` match, so the
-  identifier is the reliable key. Never send `landing_url` (server-derived — a HelioData mission page
-  when one is confirmed, otherwise empty so the link falls back to the SPASE `identifier`).
+  endpoint for any plausible same-type row — exact match first, then case-insensitive/trimmed comparison
+  and obvious parenthetical-abbreviation variants. If one exists (a legacy row, several same-name rows,
+  or a near-existing row that differs only by casing/spacing/parenthetical abbreviation), a bare name
+  binds to it or creates a likely duplicate; in the legacy case it also re-links the software to a row
+  the backfill is removing (56 of 63 legacy rows have no SPASE twin), so **omit the entry and flag it**
+  instead. Only free-type the `name` (no `identifier`) when **no row of any kind** plausibly matches that
+  `name`+`type` (a genuinely new entry). Backend matching is `identifier` first, then the case-sensitive
+  `name`+`type` match, so the identifier is the reliable key. Never send `landing_url` (server-derived —
+  a HelioData mission page when one is confirmed, otherwise empty so the link falls back to the SPASE
+  `identifier`).

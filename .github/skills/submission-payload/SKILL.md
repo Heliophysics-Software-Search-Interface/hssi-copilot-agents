@@ -163,17 +163,20 @@ Each submission object **must** include these five fields:
 7. Otherwise emit the single chosen row's `name` + SPASE `identifier`. If **no SPASE row matches**, do
    **not** immediately free-type a bare name — the backend's no-identifier fallback is
    `filter(name=…, type=…).first()` over the **whole table**, including the ~63 legacy non-SPASE rows.
-   First check the **full, unfiltered** endpoint for any row (legacy included) with that exact
-   `name`+`type`:
-   - If **any** exact-name+type row exists (a legacy non-SPASE row, or several same-name rows), a bare
-     name would silently bind to it — re-linking the software to exactly the legacy rows the backfill
-     is removing (56 of the 63 legacy rows have no SPASE twin, so this is common, e.g. `ELFIN`,
-     `COSMIC-2`, `ACE (Advanced Composition Explorer)`). **Omit the entry and flag it for manual
-     review** instead.
-   - Only when **no row of any kind** has that exact `name`+`type` is it safe to free-type the `name`
-     with no `identifier` — that genuinely creates a new row rather than binding to an existing one.
+   First check the **full, unfiltered** endpoint for any plausible same-type row (legacy included):
+   exact match first, then case-insensitive/trimmed comparison and obvious parenthetical-abbreviation
+   variants (e.g. `Parker Solar Probe (PSP)` vs. `Parker Solar Probe`).
+   - If **any** plausible `name`+`type` row exists (a legacy non-SPASE row, several same-name rows, or
+     a near-existing row that differs only by casing/spacing/parenthetical abbreviation), a bare name
+     would silently bind to it or create a likely duplicate — re-linking the software to exactly the
+     legacy rows the backfill is removing in the legacy case (56 of the 63 legacy rows have no SPASE
+     twin, so this is common, e.g. `ELFIN`, `COSMIC-2`, `ACE (Advanced Composition Explorer)`). **Omit
+     the entry and flag it for manual review** instead.
+   - Only when **no row of any kind** plausibly matches that `name`+`type` is it safe to free-type the
+     `name` with no `identifier` — that genuinely creates a new row rather than binding to an existing
+     one or duplicating a near-existing row.
    Always surface free-typed or omitted entries to the user. (Net rule: emitting a bare name is safe
-   **only** when the full vocab has zero exact `name`+`type` matches.)
+   **only** when the full vocab has zero plausible `name`+`type` matches.)
 
 ### Award
 - `name` (required) — string

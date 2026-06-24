@@ -195,13 +195,15 @@ Actively look for metadata the extractor might have missed:
      submission** — do not recommend a bare `name`, because the backend's no-identifier path is a
      case-sensitive `filter(name=…, type=…).first()` that silently binds a bare name to an arbitrary
      same-name row. **Before endorsing any no-identifier (free-typed) value, check the full, unfiltered
-     endpoint for a row with that exact `name`+`type`:** if one exists — a same-name collision or a
-     **legacy non-SPASE row** (56 of the 63 legacy rows have no SPASE twin, e.g. `ELFIN`, `COSMIC-2`) —
-     the bare name would bind to it (re-linking to the legacy row the backfill removes), so flag it as
-     **needs manual resolution**, not as an acceptable value. A free-typed value is only acceptable when
-     **no row of any kind** has that exact `name`+`type`. Treat any extractor entry already marked
-     `NEEDS MANUAL RESOLUTION` as unresolved (don't silently "fix" it into a submittable value). Also
-     flag embedded-abbreviation names (e.g. `Parker Solar Probe (PSP)`) and missing identifiers.
+     endpoint for any plausible same-type row:** exact match first, then case-insensitive/trimmed
+     comparison and obvious parenthetical-abbreviation variants. If one exists — a same-name collision,
+     a **legacy non-SPASE row** (56 of the 63 legacy rows have no SPASE twin, e.g. `ELFIN`, `COSMIC-2`),
+     or a near-existing row that differs only by casing/spacing/parenthetical abbreviation — the bare
+     name would bind to it or create a likely duplicate, so flag it as **needs manual resolution**, not
+     as an acceptable value. A free-typed value is only acceptable when **no row of any kind** plausibly
+     matches that `name`+`type`. Treat any extractor entry already marked `NEEDS MANUAL RESOLUTION` as
+     unresolved (don't silently "fix" it into a submittable value). Also flag embedded-abbreviation
+     names (e.g. `Parker Solar Probe (PSP)`) and missing identifiers.
 
 6. **Verify "Not found" fields** — for each field marked "Not found", spend a moment confirming it truly cannot be determined from available sources
 
