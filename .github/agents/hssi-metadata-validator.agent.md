@@ -52,7 +52,7 @@ Verify the file is well-formed and complete:
 Check that values conform to expected formats:
 
 - **Dates** must be YYYY-MM-DD (Fields 10, 12)
-- **DOIs** must be full URLs: `https://doi.org/10.XXXX/XXXXX` (Fields 2, 12, 14, 27, 28, 29, 30, 31)
+- **DOIs** must be full URLs: `https://doi.org/10.XXXX/XXXXX` (Fields 2, 12, 14, 27, 28, 29, 30). **Field 31 (Instrument Identifier) is normally a SPASE Resource ID URL** (`https://spase-metadata.org/...`), not a DOI — do **not** flag a SPASE identifier as a malformed DOI (a DOI there is only a manual exception).
 - **URLs** must be complete with protocol (Fields 3, 24, 33)
 - **Author names** should follow "Given Name, Initials, Surname" convention (Field 6)
 - **ORCIDs** must be full URLs: `https://orcid.org/XXXX-XXXX-XXXX-XXXX` (Field 6)

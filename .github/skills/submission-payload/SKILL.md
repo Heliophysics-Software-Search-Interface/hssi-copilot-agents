@@ -123,6 +123,8 @@ Each submission object **must** include these five fields:
   confirmed to exist; otherwise empty so the link falls back to the SPASE `identifier`) and is ignored
   on submission. Agents only ever set `name` and `identifier`.
 
+**First apply the relevance gate, then resolve.** Only list instruments/observatories the software is *designed to support* (see Fields 31/32 "When to include it" in the field definitions / extractor relevance gate); the steps below resolve the entries that have already passed it.
+
 **How to resolve against the controlled list** (`/api/models/InstrumentObservatory/rows/all/`):
 
 1. **Fetch once to a file; filter locally.** The endpoint returns the entire vocabulary (~7,700 rows)
