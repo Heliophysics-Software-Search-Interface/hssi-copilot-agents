@@ -157,6 +157,8 @@ Run the complete metadata extraction process (same as the `hssi-metadata-extract
 
 This produces fresh metadata for ALL 33 fields, which is then compared against what's in HSSI.
 
+**Relevance gate (Fields 31 & 32):** when this extraction produces Related Instruments/Observatories, apply the **same "designed to support" relevance gate as the `hssi-metadata-extractor`** (stage A of its Fields 31/32 rule) — only enrich in an instrument/observatory the software is genuinely designed to support, not tutorial/agnostic/format-only mentions. Relevance (whether to list) precedes resolution (which SPASE row).
+
 #### Targeted Mode (no extraction)
 
 No repo needed. Use the specific field/value pairs provided by the user directly.

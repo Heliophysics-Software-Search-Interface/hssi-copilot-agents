@@ -285,7 +285,7 @@ Same endpoints as the submission payload — use these to normalize values befor
 | License | `/api/models/License/rows/all/` |
 | Related Instruments / Observatories | `/api/models/InstrumentObservatory/rows/all/` (`type` 1 = instrument, 2 = observatory) |
 
-**Instruments / Observatories matching:** Resolve names against
+**Instruments / Observatories matching:** First apply the **relevance gate** — only list instruments/observatories the software is *designed to support* (see Fields 31/32 "When to include it"); the resolution below is for entries that have already passed it. Resolve those names against
 `/api/models/InstrumentObservatory/rows/all/`. The endpoint returns the whole vocabulary (~7,700 rows)
 in `data[]` — **fetch it once to a file and filter locally** (`grep`/`jq`/`python`); don't load every
 row into context (`?columns=id,name,identifier,type,abbreviation` drops the large `definition` field;

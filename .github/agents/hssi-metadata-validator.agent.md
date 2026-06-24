@@ -169,8 +169,10 @@ Actively look for metadata the extractor might have missed:
      specific instrument's/observatory's data or is purpose-built for it. Flag **over-inclusion** —
      entries that look like instrument/observatory-agnostic claims, tutorial/demo name-drops,
      "configurable for" / "optimized for" mentions, or links that really belong to another field (a
-     *file format* → Input/Output Formats, a *data source* → Data Sources, a *phenomenon* → Related
-     Phenomena) — and recommend removing them or moving them to the correct field. Flag
+     *generic* file format → Input/Output Formats, a *generic/multi-mission* data source → Data Sources,
+     a *phenomenon* → Related Phenomena — but an instrument/mission-**specific** format or data source
+     legitimately stays, and an observatory-specific data source should be cross-listed here per
+     Field 17) — and recommend removing or moving only the genuinely-misfiled ones. Flag
      **under-inclusion** — an instrument/observatory the software is genuinely designed to support but
      that is missing from 31/32. (A genuinely-supported instrument that is merely hard to resolve is
      still *related* — it should be resolved or marked `NEEDS MANUAL RESOLUTION`, not dropped.)
