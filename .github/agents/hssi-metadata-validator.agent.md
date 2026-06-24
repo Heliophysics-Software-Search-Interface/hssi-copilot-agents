@@ -164,6 +164,16 @@ Actively look for metadata the extractor might have missed:
 
 5. **Check for related instruments/observatories** not mentioned:
    - Search README and docs for instrument or mission names
+   - **Apply the "designed to support" relevance bar to what's listed and what's missing.** An
+     instrument/observatory belongs in Field 31/32 only if the software directly works with that
+     specific instrument's/observatory's data or is purpose-built for it. Flag **over-inclusion** —
+     entries that look like instrument/observatory-agnostic claims, tutorial/demo name-drops,
+     "configurable for" / "optimized for" mentions, or links that really belong to another field (a
+     *file format* → Input/Output Formats, a *data source* → Data Sources, a *phenomenon* → Related
+     Phenomena) — and recommend removing them or moving them to the correct field. Flag
+     **under-inclusion** — an instrument/observatory the software is genuinely designed to support but
+     that is missing from 31/32. (A genuinely-supported instrument that is merely hard to resolve is
+     still *related* — it should be resolved or marked `NEEDS MANUAL RESOLUTION`, not dropped.)
    - For any instrument/mission found, check it resolves to HSSI's controlled vocabulary at
      `/api/models/InstrumentObservatory/rows/all/`. The endpoint returns the whole vocabulary
      (~7,700 rows) in `data[]` — fetch it once to a file and filter with `grep`/`jq`/`python` rather
