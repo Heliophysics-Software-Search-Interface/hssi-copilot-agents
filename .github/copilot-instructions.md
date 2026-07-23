@@ -108,5 +108,6 @@ Irreversible actions (POST /api/submission/, PATCH /api/data/software/<uid>/) **
 ## Repo Management
 
 - Clone into `repos/` directory when given a URL
+- For a GitHub `/tree/<ref>/...` or `/blob/<ref>/...` URL, clone the base `https://github.com/<owner>/<repo>` repository rather than the page URL. Resolve and check out the referenced ref when it still exists. If the ref no longer exists, use the current default branch for evidence and carry replacement of the stale HSSI Code Repository value with the base repository URL into the normal field-by-field diff; never silently treat the stale page URL as current.
 - `git pull` before extraction or update operations to ensure freshness
 - If given a local path outside `repos/`, work in that directory directly

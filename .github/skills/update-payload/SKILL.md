@@ -89,6 +89,13 @@ Content-Type: application/json
 - Does NOT send confirmation emails
 - Wrapped in `transaction.atomic()`
 
+**Shared structured-entity limitations:**
+
+- Top-level M2M associations such as `authors`, `funder`, `award`, `relatedInstruments`, and `relatedObservatories` are replaced by the complete submitted list.
+- People, organizations, awards, instruments, and observatories are shared database entities. When an identifier matches an existing entity, PATCH reuses it and does **not** overwrite its nonblank name. Identity matching therefore prevents duplicates but does not make a conflicting label equivalent or patchable.
+- Author affiliations are added to the matched Person; the endpoint does not remove existing affiliations. Union affiliations for matched authors. Treat any requested affiliation removal as NON-PATCHABLE.
+- Omit shared-entity renames and nested affiliation removals from the PATCH and report them as hard blockers requiring the CSV/manual database workflow. Top-level association removals are still supported when the user approves the complete replacement list.
+
 ### GET /api/list/software/?repo_url=<url> — Software Lookup
 
 Exact-match (case-insensitive) lookup of visible Software by code repository URL. Public — no token required.
@@ -171,7 +178,6 @@ The PATCH body uses the **same key names and shapes** as the `/api/submission/` 
 | `referencePublication` | String (DOI URL) | |
 | `publicationDate` | String (`YYYY-MM-DD`) | |
 | `logo` | String URL | |
-| `licenseFileURL` | String URL | |
 | `authors` | Array of Person objects | `{givenName, familyName, identifier, affiliation: [{name, identifier}, ...]}` |
 | `publisher` | Organization object | `{name, identifier}` |
 | `license` | String | License name only — must match an existing `License.name` (case-insensitive) |
@@ -280,12 +286,13 @@ When comparing fresh metadata against HSSI data, classify each field as:
 | **ENRICHMENT** | HSSI field is empty **— or, for an M2M field, the fresh set contains values HSSI lacks** | Add the new value(s), keeping any existing ones (with approval) |
 | **CONFLICT** | Both have values, unclear which is correct | User decides |
 | **HSSI-ONLY** | HSSI has value, fresh metadata doesn't | Keep — never remove without explicit approval |
+| **NON-PATCHABLE** | The desired change targets a shared-entity attribute or nested affiliation removal that PATCH cannot perform | Block PATCH; route to CSV/manual correction |
 
 ### Safety rules:
 
 - **Additive by default** — Never remove data (reduce authors, remove keywords) unless the user explicitly approves with a warning
 - **M2M enrichment is identity-aware set-union** — to add values to an M2M field, send `existing ∪ new` (the API replaces the whole field, it does not merge). Expand shallow non-empty lists (e.g. Software Functionality with only 1–2 values) rather than skipping them as "already populated." If the user explicitly approves a removal, send the complete approved final set; do not union the removed member back in.
-- **Match structured entries by stable identity before name** — authors by ORCID, then normalized name; author affiliations and organizations by ROR, then normalized name; awards by identifier, then normalized name; instruments and observatories by normalized SPASE identifier, then canonical name. Compare scalar controlled-value and URL collections as normalized sets.
+- **Match structured entries by stable identity before name without ignoring attributes** — authors by ORCID, then normalized name; author affiliations and organizations by ROR, then normalized name; awards by identifier, then normalized name; instruments and observatories by normalized SPASE identifier, then canonical name. For matched authors, union affiliations. After identity matching, separately compare labels and nested values; route non-PATCHable shared-entity differences through the blocker rule above. Compare scalar controlled-value and URL collections as normalized sets.
 - **Submitter is out of scope** — never include Field 1 in an update diff, baseline, or PATCH.
 - **One PATCH only** — If it fails, report and stop. No retries.
 - **Present the exact plan before submitting** — Always show the diff, complete update plan, and nested PATCH body the user is approving.
