@@ -26,7 +26,8 @@ These are Copilot CLI **custom agents** (agent profiles in `.github/agents/`). T
 
 Hand each step to the relevant custom agent by name (e.g., "use the `hssi-metadata-extractor` agent
 to …"). Copilot runs it as a subagent in its own context and returns the result. Always pass the
-full context the agent needs (repo path, target URL, mode, metadata file path, payload file paths). The orchestrator
+full context the agent needs (repo path, resolved HSSI UUID, target URL, mode, metadata file path,
+user decisions, validation report, and payload/update-plan paths as applicable). The orchestrator
 itself never performs extraction, payload construction, validation, or submission directly.
 
 ## Mode Detection
@@ -66,33 +67,35 @@ If ambiguous, ask which mode the user wants. If clear, proceed.
 
 1. Determine software identity (name, repo URL, or UUID) and mode from request
 2. Ensure repo freshness: `git pull` if exists, clone to `repos/` if URL given — skip for targeted mode
-3. Delegate to the **`hssi-metadata-updater`** agent in PREPARE mode (software ID, mode, repo path or targeted changes, target URL) → returns diff report + payload file
-4. Present diff + payload to user → get explicit approval
-5. On approval: delegate to the **`hssi-metadata-updater`** agent in EXECUTE mode (payload file, target URL) → returns results
-6. Present results to user
+3. Delegate to the **`hssi-metadata-updater`** agent in PREPARE mode (software ID, mode, repo path or targeted changes, target URL) → returns a diff and either an exact transient update plan or decisions/blockers
+4. If decisions are required, get the user's per-field choices and invoke PREPARE again. If the Updater reconciles a metadata file, delegate its changed fields to the **Validator** for a focused recheck, then invoke PREPARE with the passing report to produce the final plan.
+5. Present the complete final diff, update plan, and exact nested `patch` to the user → get explicit approval
+6. If `patch` is non-empty, delegate to the **`hssi-metadata-updater`** agent in EXECUTE mode (update-plan path, exact target URL) → baseline check, PATCH, and roundtrip verification. If empty, skip EXECUTE.
+7. Present results to user
 
 ### Full Metadata Refresh (file-driven, via canonical metadata file)
 
 Use this when the goal is to make an entry's metadata **as complete and correct as possible** (not just a quick dynamic-field refresh) — e.g. the metadata-triage effort for software not submitted by us. It produces/updates the canonical `hssi_metadata.md` and applies the diff to HSSI. The canonical metadata files live in the **`hssi-claude-agents`** repo under `repos/<repo-name>/hssi_metadata.md`.
 
-1. Determine software identity (name, repo URL, or UUID) and the target URL.
+1. Determine software identity, resolve its HSSI UUID, and confirm the target URL.
 2. Fetch the entry's **current HSSI metadata**: `GET <target>/api/view/software/<uid>/`.
 3. Check whether a canonical `hssi_metadata.md` already exists in `hssi-claude-agents/repos/<repo>/`.
 4. Ensure the source repo is present and fresh (clone to `repos/` if needed; `git pull`).
-5. Delegate to the **`hssi-metadata-extractor`** agent **seeded** with the current HSSI metadata (and the existing `hssi_metadata.md`, if one exists) → produces/updates the complete `hssi_metadata.md`.
-6. Delegate to the **`hssi-metadata-validator`** agent on the produced file → fix ERRORs; surface WARNINGs/SUGGESTIONs.
-7. Delegate to the **`hssi-metadata-updater`** agent in **`apply` mode**, PREPARE (metadata file path, target URL) → diffs the validated file vs live HSSI and returns the delta diff report + payload. **No re-extraction.**
-8. Present diff + payload to the user → get explicit approval.
-9. On approval: delegate to the **`hssi-metadata-updater`** agent in EXECUTE mode (payload file, target URL) → PATCH + roundtrip verify.
-10. Save/commit the updated `hssi_metadata.md` to the canonical `hssi-claude-agents/repos/` store.
+5. Delegate to the **`hssi-metadata-extractor`** agent with the UUID, current HSSI metadata, source repo, and existing canonical file if present. The result must be one complete `hssi_metadata.md` whose provenance header records the UUID, repository URL, full source revision, extraction date, and pending validation state.
+6. Delegate to the **`hssi-metadata-validator`** agent for a full validation of that file. Fix ERRORs through the appropriate agent and revalidate; surface WARNINGs/SUGGESTIONs. Keep the file's validation header pending until the user's final choices are incorporated.
+7. Delegate to the **`hssi-metadata-updater`** agent in **`apply` mode**, PREPARE with the resolved UUID, validated metadata file, passing full validation report, target URL, and update-plan output path. It compares Fields 2–33 to live HSSI without re-extraction and returns a diff plus either an exact update plan or decisions/blockers.
+8. For every CONFLICT, removal, or other choice, get the user's explicit per-field decision. Delegate to the Updater in PREPARE again to reconcile the canonical working file. Then delegate only the changed fields to the Validator for a focused recheck, and invoke PREPARE once more with the passing final report to build the exact update plan.
+9. Present the complete final diff, complete update plan, and exact nested `patch` to the user. Make clear that resolving Step 8 choices did not itself approve a PATCH; obtain explicit approval of this exact plan.
+10. If `patch` is non-empty, delegate to the Updater in EXECUTE mode with the update-plan path and exact target URL. It must verify the UUID, target, blocker state, and affected-field baseline before sending only the nested `patch`, then roundtrip-verify. If `patch` is empty, skip EXECUTE.
+11. Confirm the working file's Fields 2–33 match the user-approved and, when patched, roundtrip-verified final state. Record the final validation date and `Validation Status: PASS`, then save/commit `hssi_metadata.md` to the canonical `hssi-claude-agents/repos/` store. Do this even for a true no-op so the validated baseline remains useful for later drift checks.
 
 ## Approval Gate Protocol
 
 Irreversible actions (POST /api/submission/, PATCH /api/data/software/<uid>/) **ALWAYS** require explicit user approval. The orchestrator:
 
-1. Shows the complete payload/diff to the user
+1. Shows the complete payload/diff to the user; for updates, this means the complete update plan and exact nested `patch`
 2. Asks for confirmation
-3. Only proceeds to EXECUTE phase after affirmative response
+3. Only proceeds to EXECUTE phase after affirmative approval of that exact artifact
 4. Never auto-approves, regardless of tool permission settings
 
 ## Error Handling
