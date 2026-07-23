@@ -82,7 +82,7 @@ Content-Type: application/json
 **Key behaviors:**
 - The URL `<uid>` must reference a visible Software entry (404 otherwise)
 - Only fields present in the body are updated; omitted fields are untouched
-- For M2M fields (authors, keywords, etc.), the provided list **fully replaces** that field
+- For M2M fields (authors, keywords, etc.), the provided list **fully replaces** that field — the API does **not** merge. To *add* to an M2M field without dropping anything, send the full intended set = **`existing ∪ new`** (fetch the current values, union in the new ones). This is why enriching a shallow-but-non-empty M2M list (e.g. adding Software Functionality values to an entry that already has one) still requires sending the existing values alongside the new ones.
 - Empty list `[]` clears the M2M; `null` clears nullable scalars
 - `submitter` is rejected with 400 — partial updates cannot rewrite the submitter
 - Touches the most recent `SubmissionInfo` on success: sets `modification_description = "Partial update via API: <fields>"` and bumps `date_modified` (auto_now). Does NOT create a new SubmissionInfo
@@ -243,13 +243,14 @@ When comparing fresh metadata against HSSI data, classify each field as:
 |--------|---------|--------|
 | **MATCH** | Values equivalent | No update needed |
 | **STALE** | HSSI value differs, fresh value is clearly newer | Update (with approval) |
-| **ENRICHMENT** | HSSI field is empty, fresh metadata has a value | Add (with approval) |
+| **ENRICHMENT** | HSSI field is empty **— or, for an M2M field, the fresh set contains values HSSI lacks** | Add the new value(s), keeping any existing ones (with approval) |
 | **CONFLICT** | Both have values, unclear which is correct | User decides |
 | **HSSI-ONLY** | HSSI has value, fresh metadata doesn't | Keep — never remove without explicit approval |
 
 ### Safety rules:
 
 - **Additive by default** — Never remove data (reduce authors, remove keywords) unless the user explicitly approves with a warning
+- **M2M enrichment is set-union** — to add values to an M2M field, send `existing ∪ new` (the API replaces the whole field, it does not merge). Expand shallow non-empty lists (e.g. Software Functionality with only 1–2 values) rather than skipping them as "already populated."
 - **One PATCH only** — If it fails, report and stop. No retries.
 - **Present diff before submitting** — Always show the user what will change
 

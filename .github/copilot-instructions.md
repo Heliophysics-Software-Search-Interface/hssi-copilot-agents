@@ -26,7 +26,7 @@ These are Copilot CLI **custom agents** (agent profiles in `.github/agents/`). T
 
 Hand each step to the relevant custom agent by name (e.g., "use the `hssi-metadata-extractor` agent
 to …"). Copilot runs it as a subagent in its own context and returns the result. Always pass the
-full context the agent needs (repo path, target URL, mode, payload file paths). The orchestrator
+full context the agent needs (repo path, target URL, mode, metadata file path, payload file paths). The orchestrator
 itself never performs extraction, payload construction, validation, or submission directly.
 
 ## Mode Detection
@@ -39,6 +39,7 @@ Determine the mode from the user's request:
 - **Update (refresh)** — "update sunpy on HSSI", "refresh sunpy's metadata", "check if sunpy is up to date"
 - **Enrich** — "enrich sunpy on HSSI", "check what metadata sunpy is missing", "fill in sunpy's missing fields"
 - **Targeted update** — "change sunpy's name to SunPy on HSSI", "update sunpy's version to v6.1.0"
+- **Full metadata refresh (file-driven)** — "make sure X's metadata is complete and up to date", "do a thorough refresh of X", or the metadata-triage effort. Runs the canonical-metadata-file pipeline (seeded Extractor → Validator → Updater `apply`), not just a quick dynamic-field check.
 
 If ambiguous, ask which mode the user wants. If clear, proceed.
 
@@ -69,6 +70,21 @@ If ambiguous, ask which mode the user wants. If clear, proceed.
 4. Present diff + payload to user → get explicit approval
 5. On approval: delegate to the **`hssi-metadata-updater`** agent in EXECUTE mode (payload file, target URL) → returns results
 6. Present results to user
+
+### Full Metadata Refresh (file-driven, via canonical metadata file)
+
+Use this when the goal is to make an entry's metadata **as complete and correct as possible** (not just a quick dynamic-field refresh) — e.g. the metadata-triage effort for software not submitted by us. It produces/updates the canonical `hssi_metadata.md` and applies the diff to HSSI. The canonical metadata files live in the **`hssi-claude-agents`** repo under `repos/<repo-name>/hssi_metadata.md`.
+
+1. Determine software identity (name, repo URL, or UUID) and the target URL.
+2. Fetch the entry's **current HSSI metadata**: `GET <target>/api/view/software/<uid>/`.
+3. Check whether a canonical `hssi_metadata.md` already exists in `hssi-claude-agents/repos/<repo>/`.
+4. Ensure the source repo is present and fresh (clone to `repos/` if needed; `git pull`).
+5. Delegate to the **`hssi-metadata-extractor`** agent **seeded** with the current HSSI metadata (and the existing `hssi_metadata.md`, if one exists) → produces/updates the complete `hssi_metadata.md`.
+6. Delegate to the **`hssi-metadata-validator`** agent on the produced file → fix ERRORs; surface WARNINGs/SUGGESTIONs.
+7. Delegate to the **`hssi-metadata-updater`** agent in **`apply` mode**, PREPARE (metadata file path, target URL) → diffs the validated file vs live HSSI and returns the delta diff report + payload. **No re-extraction.**
+8. Present diff + payload to the user → get explicit approval.
+9. On approval: delegate to the **`hssi-metadata-updater`** agent in EXECUTE mode (payload file, target URL) → PATCH + roundtrip verify.
+10. Save/commit the updated `hssi_metadata.md` to the canonical `hssi-claude-agents/repos/` store.
 
 ## Approval Gate Protocol
 

@@ -3,8 +3,10 @@ name: hssi-metadata-updater
 description: >
   Updates existing HSSI software entries with fresh metadata from their source
   repositories. Supports refresh (dynamic fields), enrich (fill missing fields),
-  and targeted (specific field changes) modes. Use when the user asks to update,
-  refresh, or enrich metadata for software already in HSSI.
+  targeted (specific field changes), and apply (diff a prepared, validated
+  hssi_metadata.md against HSSI and patch the deltas — no re-extraction) modes.
+  Use when the user asks to update, refresh, or enrich metadata for software
+  already in HSSI.
 tools: ["read", "search", "execute", "web"]
 ---
 
@@ -55,11 +57,13 @@ You will be given:
    - `refresh` — Check dynamic fields against the repo (lightweight, no SoMEF)
    - `enrich` — Run full extraction pipeline, diff ALL fields against HSSI
    - `targeted` — Apply specific field/value pairs provided by the user
+   - `apply` — Diff a prepared, already-validated `hssi_metadata.md` against HSSI and patch the deltas — **no re-extraction** (see Apply Mode in Step 3)
 3. **Repo path** (refresh/enrich modes) — local path to the software's source code
-4. **Targeted changes** (targeted mode only) — specific field/value pairs from the user
-5. **Target URL** — base URL of the HSSI instance (default: `https://hssi.hsdcloud.org`)
-6. **Invocation mode** — PREPARE or EXECUTE (see Invocation Modes below)
-7. **Payload file path** (EXECUTE mode only) — path to a pre-built payload JSON file
+4. **Metadata file path** (apply mode) — path to the prepared, validated `hssi_metadata.md` to diff against HSSI
+5. **Targeted changes** (targeted mode only) — specific field/value pairs from the user
+6. **Target URL** — base URL of the HSSI instance (default: `https://hssi.hsdcloud.org`)
+7. **Invocation mode** — PREPARE or EXECUTE (see Invocation Modes below)
+8. **Payload file path** (EXECUTE mode only) — path to a pre-built payload JSON file
 
 ---
 
@@ -69,11 +73,11 @@ You will be invoked in one of two modes:
 
 ### PREPARE mode (default)
 
-Execute Steps 1–6 only. Identify the software, fetch current HSSI metadata, extract fresh metadata, diff, present the report, and build the update payload. Save the payload to the specified output path (e.g., `payloads/<name>_update.json`). Return the diff report and payload path. Do NOT submit. Do NOT proceed to Steps 8–10.
+Execute Steps 1–6 only. Identify the software, fetch current HSSI metadata, obtain fresh metadata (extract from the repo, or read the prepared file in `apply` mode), diff, present the report, and build the update payload. Save the payload to the specified output path (e.g., `payloads/<name>_update.json`). Return the diff report and payload path. Do NOT submit. Do NOT proceed to Steps 8–10.
 
 **If the target is production, lead your return with the version-control-trail recommendation (see the CRITICAL section above) — surface it here in PREPARE, before the approval gate, so the user can choose the CSV-PR workflow instead of a direct PATCH. Do not wait until EXECUTE.**
 
-**Input:** software identifier, mode, repo path or targeted changes, target URL, output payload path.
+**Input:** software identifier, mode, repo path / targeted changes / metadata file path (per mode), target URL, output payload path.
 
 ### EXECUTE mode
 
@@ -97,7 +101,9 @@ The PATCH endpoint requires a bearer token (the lookup endpoint at `/api/list/so
 
 ## Repo Freshness
 
-Before extracting metadata, **always `git pull`** the repo to ensure it reflects the latest upstream state. Never assume a pre-existing repo or its `hssi_metadata.md` is up-to-date — any discovered `hssi_metadata.md` is likely from a previous submission and probably stale.
+Before extracting metadata, **always `git pull`** the repo to ensure it reflects the latest upstream state. Never assume a pre-existing repo or its `hssi_metadata.md` is up-to-date — any *incidentally discovered* `hssi_metadata.md` is likely from a previous submission and probably stale.
+
+**Exception — `apply` mode.** When you are explicitly handed a metadata file to apply (produced and validated *earlier in this same pipeline*), that file **is** authoritative: use it as-is, do not re-extract, and do not treat it as stale. This exception covers only the file passed as the `apply`-mode input, not other `hssi_metadata.md` files you happen to find in the repo.
 
 ---
 
@@ -163,9 +169,19 @@ This produces fresh metadata for ALL 33 fields, which is then compared against w
 
 No repo needed. Use the specific field/value pairs provided by the user directly.
 
+#### Apply Mode (file-driven — no extraction)
+
+No repo extraction, no SoMEF. You are given a prepared, already-validated `hssi_metadata.md` (produced earlier in this pipeline, typically seeded from live HSSI). Treat that file as the **fresh metadata**:
+
+1. **Parse the file** into comparable field values using the `submission-payload` skill's `hssi_metadata.md` → API field mapping (the same mapping the submitter uses). The file is the desired end-state for every field it specifies.
+2. **Do NOT re-extract, run SoMEF, or re-resolve** values the file already resolved. If the file carries a `NEEDS MANUAL RESOLUTION` marker (e.g. an ambiguous instrument/observatory), preserve it as a hard blocker — do not invent a value.
+3. Proceed to the diff (Step 4) with **all fields present in the file** in scope, comparing the file's values against the current HSSI record.
+
+Because the file was typically seeded from live HSSI, most fields will MATCH and the diff surfaces only genuine changes (new version, filled gaps, expanded functionality).
+
 ### Step 4: Diff — Compare Fresh vs HSSI
 
-For each field in scope (dynamic fields for refresh, all fields for enrich, specified fields for targeted):
+For each field in scope (dynamic fields for refresh, all fields for enrich, specified fields for targeted, all fields present in the file for apply):
 
 | Status | Meaning | Example |
 |--------|---------|---------|
@@ -179,6 +195,7 @@ For each field in scope (dynamic fields for refresh, all fields for enrich, spec
 - For M2M fields (authors, keywords, etc.), compare the sets, not just presence/absence
 - For version, compare version numbers semantically when possible
 - Treat HSSI-ONLY as "keep" by default — the updater is additive
+- **M2M enrichment is set-union, and applies to shallow non-empty lists too.** When fresh metadata has M2M values (especially **Software Functionality**) that HSSI lacks, propose ADDING them — even if HSSI already has *some* values for that field. Do not skip a field just because it is "already populated"; a list with 1–2 values can still be expanded. The intended value for the field is `existing ∪ new` (keep every existing value, add the new ones). Removing an existing value still requires explicit approval. This matters because the PATCH API **fully replaces** each M2M field — see `update-payload`.
 
 ### Step 5: Present Diff Report
 
@@ -212,7 +229,7 @@ For user-approved changes only:
 
 1. **Normalize controlled-list values** against live endpoints on the target URL
 2. **Build the body** as a flat JSON object of camelCase field names → values, using the same shapes as `/api/submission/`. There is no `softwareId`/`fields` envelope — the `softwareId` goes in the URL path, and the body is just the changed fields.
-3. **Include only changed fields** in the body.
+3. **Include only changed fields** in the body. **For M2M fields, send the full intended set = `existing ∪ new`** (the API replaces, not merges, each M2M field), so an enrichment that adds values must still include the existing ones. A field counts as "changed" if the intended set differs from HSSI's current set.
 4. **Instrument/Observatory collision gate.** If resolving a `relatedInstruments`/`relatedObservatories` value hits an **unresolved match** — either a name matching several controlled-list rows (e.g. the four `Solar Ultraviolet Imager` GOES-16/17/18/19 rows) **or** a name that resolves to no single identifier but still exactly or plausibly matches an existing same-type row (case-insensitive/trimmed or obvious parenthetical-abbreviation variants that `filter(name, type).first()` would bind to) — **omit that entry** from the payload (never send a bare name — see `update-payload`) and flag it in the diff report as requiring manual resolution. A bare name is safe only when the vocab has **zero plausible** `name`+`type` matches. If an upstream extractor pass already marked an entry `NEEDS MANUAL RESOLUTION` (enrich mode reuses extraction), treat that marker as the same hard blocker — do not re-resolve it into a submittable value. This is a **hard blocker for EXECUTE:** PREPARE may report it, but do not PATCH while any unresolved instrument/observatory entry remains.
 
 See the `update-payload` skill for the complete field shape reference.
